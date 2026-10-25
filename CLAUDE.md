@@ -21,9 +21,15 @@ npm run build    # tsc --noEmit && vite build
 5. **Not a score.** The record is evidence over rules (used unprompted, asked about). No XP, no
    stars, no levels.
 6. **His alone.** The record lives in his browser. No server, no model, no analytics.
-7. **The course's order, our own problems.** Tag a lesson with the AoPS chapter; never copy a
-   book's exercises or text.
+7. **The course's order; our own problems, or Euler's.** Tag a lesson with the AoPS chapter;
+   never copy a book's exercises or text. Euler's *Elements of Algebra* (1770; Hewlett's English,
+   1822) is public domain: his worked examples and words may be used, quoted exactly as printed
+   and cited by section (`src/euler/`). Never a modern edition's own matter (the Springer
+   reprint's introduction is not his).
 8. **Pushing to main publishes** to the site he uses. Work on a branch.
+9. **The school is weighed from his examples.** Every line of `src/euler/` is one legal step that
+   ends at his answer (a test). A rule his examples never offer keeps a stated guess and says so.
+   The school takes the first move of the most likely whole way, never the best-looking next move.
 
 Commits end with:
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseProblem } from "../src/engine/parse";
-import { structKey, isConst } from "../src/engine/ast";
+import { structKey, isConst, replaceAt } from "../src/engine/ast";
 import { rules, searchable, factorize, primePowers } from "../src/rules/numbertheory";
 import { judge, intended, valueOf } from "../src/tutor/check";
 import { masterMove } from "../src/tutor/school";
@@ -29,7 +29,9 @@ describe("the rules: one positive and one negative each", () => {
   });
   it("Euclid's step replaces the larger by the remainder; gcd(a, 0) = a", () => {
     expect(step("euclid", "gcd(84, 60)")).toBe(structKey(P("gcd(60, 24)")));
-    expect(rule("euclid").canApply(P("gcd(60, 84)"))).toBe(false);
+    // Euler divides the greater by the less whichever is written first (§460: 1728 and 2304).
+    expect(step("euclid", "gcd(60, 84)")).toBe(structKey(P("gcd(60, 24)")));
+    expect(rule("euclid").canApply(P("gcd(12, 0)"))).toBe(false);
     expect(step("gcd_zero", "gcd(12, 0)")).toBe(structKey(P("12")));
     expect(rule("gcd_zero").canApply(P("gcd(0, 12)"))).toBe(false);
   });
@@ -67,6 +69,11 @@ describe("the judge", () => {
   });
   it("says two steps are two, a true jump is true, and a wrong line is wrong", () => {
     expect(read("lcm(12, 18)", "\\operatorname{lcm}(2^{2} \\cdot 3, 2 \\cdot 3^{2})").kind).toBe("twice");   // one rule, both numbers
+    // Two divisions in one line are two steps, though the rule is the same: Euler sets each on its
+    // own line (§452). Only one rule at two separate places stands as one line.
+    const v2 = read("gcd(576, 252)", "\\gcd(72, 36)");
+    expect(v2.kind).toBe("two");
+    expect(verdict(v2, () => false).say).toContain("Euclid's step, and then the same again on what it gave");
     expect(read("lcm(2^2 * 3, 18)", "2^{2} \\cdot 3^{2}").kind).toBe("two");
     expect(read("lcm(12, 18)", "36").kind).toBe("true");
     expect(read("lcm(12, 18)", "216").kind).toBe("false");
@@ -90,12 +97,36 @@ describe("the school and the lessons", () => {
       }
     }
   });
-  it("factors small numbers at sight and takes Euclid's way for large ones", () => {
+  // Euler takes Euclid's way in all four of his examples and never factors (§452–460), so the
+  // school, weighed from him, now divides even where the numbers are small.
+  it("takes Euclid's way, as Euler does, where it is allowed; factors where it is not", () => {
     const l = LESSONS.find((x) => x.id === "euclid")!;
     const ts = searchable.filter((r) => l.rules.includes(r.id));
     const goal = (g: number) => (n: ReturnType<typeof P>) => isConst(n) && n.value === g;
-    expect(masterMove(P("gcd(1071, 462)"), goal(21), ts)!.rule.id).toBe("euclid");
-    expect(masterMove(P("gcd(84, 60)"), goal(12), ts)!.rule.id).toBe("prime_factor");
+    expect(masterMove(P("gcd(1071, 462)"), goal(21), ts, searchable)!.rule.id).toBe("euclid");
+    expect(masterMove(P("gcd(84, 60)"), goal(12), ts, searchable)!.rule.id).toBe("euclid");
+    const ii = searchable.filter((r) => LESSONS.find((x) => x.id === "gcd")!.rules.includes(r.id));
+    expect(masterMove(P("gcd(84, 60)"), goal(12), ii, searchable)!.rule.id).toBe("prime_factor");
+  });
+  // Weighed from Euler, factoring is rarely his choice; a master that looked only one move ahead
+  // swapped the order for ever rather than factor. The school weighs whole ways now.
+  it("the school's way reaches every problem's answer and never goes round in a circle", () => {
+    for (const l of LESSONS) {
+      const ts = searchable.filter((r) => l.rules.includes(r.id));
+      for (const pr of l.problems) {
+        const goal = (n: ReturnType<typeof P>) => isConst(n) && n.value === pr.goal;
+        let node = P(pr.start);
+        const seen = new Set([structKey(node)]);
+        for (let i = 0; i < 14 && !goal(node); i++) {
+          const c = masterMove(node, goal, ts, searchable);
+          expect(c, `${pr.id} at ${structKey(node)}`).not.toBe(null);
+          node = replaceAt(node, c!.move.path, c!.rule.apply(c!.node, c!.move.params));
+          expect(seen.has(structKey(node)), `${pr.id} comes back to ${structKey(node)}`).toBe(false);
+          seen.add(structKey(node));
+        }
+        expect(goal(node), pr.id).toBe(true);
+      }
+    }
   });
   it("the question is pitched: an idea named, or a pointer", () => {
     expect(question("euclid", P("gcd(84, 60)"), false)).toContain("what is left when $84$ is divided by $60$");

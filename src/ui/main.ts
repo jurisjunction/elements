@@ -10,7 +10,8 @@ import { readLine, type Note } from "../latex/reader";
 import { rules, searchable } from "../rules/numbertheory";
 import { intended, judge } from "../tutor/check";
 import * as R from "../tutor/record";
-import { masterMove, STATUS } from "../tutor/school";
+import { masterMove, status } from "../tutor/school";
+import { longDivision, type Quote } from "../euler/gcd";
 import { FOUND, FOUND_GLOSS, opening, question, verdict } from "../tutor/voice";
 import { Slate } from "./slate";
 
@@ -65,8 +66,9 @@ function renderContents(): void {
     `<div class="lesson"><b><span>${l.numeral}.</span>${esc(l.title)}</b><ol>` +
     l.problems.map((p, k) => {
       const w = book.work[p.id];
-      const cls = [p.id === problem.id ? "here" : "", w?.done ? "done" : ""].join(" ");
-      return `<li><button class="${cls}" data-l="${l.id}" data-p="${p.id}" aria-label="Problem ${k + 1}: ${p.kind} of ${p.a} and ${p.b}">${k + 1}</button></li>`;
+      const cls = [p.id === problem.id ? "here" : "", w?.done ? "done" : "", p.euler ? "euler" : ""].join(" ");
+      const his = p.euler ? `, Euler's own, ${p.euler.cite}` : "";
+      return `<li><button class="${cls}" data-l="${l.id}" data-p="${p.id}" aria-label="Problem ${k + 1}: ${p.kind} of ${p.a} and ${p.b}${his}"${p.euler ? ` title="Euler's own example, ${p.euler.cite}"` : ""}>${k + 1}</button></li>`;
     }).join("") + "</ol></div>").join("");
   document.querySelectorAll<HTMLButtonElement>("#contents button").forEach((b) =>
     b.addEventListener("click", () => {
@@ -76,6 +78,33 @@ function renderContents(): void {
       render();
       $("#page").scrollIntoView({ block: "start" });
     }));
+}
+
+/** Euler's words, as printed, with their section. */
+const quote = (q: Quote, cls = "euler") =>
+  `<blockquote class="${cls}"><p>${esc(q.text)}</p><cite>Euler, <i>Elements of Algebra</i>, ${esc(q.cite)}</cite></blockquote>`;
+
+/** The lesson's purpose and rule in his words: in full on its first problem, folded after. */
+function lessonWords(): string {
+  if (!lesson.purpose && !lesson.rule) return "";
+  const first = lesson.problems[0] === problem;
+  const body = (lesson.purpose ? `<p class="said-by"><span class="sc">What it is for.</span></p>` + quote(lesson.purpose) : "") +
+    (lesson.rule ? `<p class="said-by"><span class="sc">His rule.</span></p>` + quote(lesson.rule) : "");
+  return first ? `<div class="words">${body}</div>`
+    : `<details class="words"><summary><span class="sc">What it is for, and his rule</span> (${esc([lesson.purpose?.cite, lesson.rule?.cite].filter(Boolean).join(", "))})</summary>${body}</details>`;
+}
+
+/** His working as printed: each division on its line, the product ruled under the dividend. */
+function eulersWorking(p: Problem): string {
+  if (!p.euler) return "";
+  // Every figure, bracket and space in a cell one figure wide, so the columns hold in any face.
+  const cells = (t: string) => [...t].map((c) => `<i>${c === "\u2007" || c === " " ? "" : esc(c)}</i>`).join("");
+  const rows = longDivision(p.a, p.b).map((l) => {
+    const m = l.text.match(/^(\u2007*)(.*)$/)!;
+    return `<div>${cells(m[1])}${l.ruled ? `<span class="ruled">${cells(m[2])}</span>` : cells(m[2])}</div>`;
+  }).join("");
+  return `<div class="his"><p class="said-by"><span class="sc">Euler's own working</span> (${esc(p.euler.cite)}), as he printed it.</p>
+    <div class="division" role="img" aria-label="Euler's long division of ${p.a} and ${p.b}">${rows}</div>${quote(p.euler.said)}</div>`;
 }
 
 function taskText(p: Problem): string {
@@ -92,8 +121,8 @@ function renderPage(): void {
   if (done && !w.done) w.done = true;
   const k = lesson.problems.indexOf(problem) + 1;
   let html = `<h2><span class="sect">§ ${lesson.numeral}.</span>${esc(lesson.title)}</h2>
-    <p class="tag">${esc(lesson.aops)}</p>
-    <p class="problem-head">Problem ${k}.</p>
+    <p class="tag">${esc(lesson.aops)}</p>${lessonWords()}
+    <p class="problem-head">Problem ${k}.${problem.euler ? ` <span class="from">Euler's own example, ${esc(problem.euler.cite)}.</span>` : ""}</p>
     <p class="task">${esc(taskText(problem))}</p>
     <p class="end"><span class="sc">The school asks first.</span> ${rich(opening(problem.kind, problem.a, problem.b))}</p>
     <ol class="working">` +
@@ -111,7 +140,7 @@ function renderPage(): void {
         ${w.lines.length ? '<button class="link" id="again">Begin again</button>' : ""}</div>
       <div id="remark">${remarkHTML()}</div>`;
   } else {
-    html += `<div class="found"><b>${FOUND}</b><small>${esc(FOUND_GLOSS)}</small></div>` + schoolsWay() +
+    html += `<div class="found"><b>${FOUND}</b><small>${esc(FOUND_GLOSS)}</small></div>` + (problem.euler ? eulersWorking(problem) : schoolsWay()) +
       `<div class="bar">${nextProblem() ? '<button class="go" id="next">The next problem</button>' : ""}<button class="link" id="again">Begin again</button></div>`;
   }
   $("#page").innerHTML = html;
@@ -123,13 +152,13 @@ function schoolsWay(): string {
   let node = parseProblem(problem.start);
   const steps: string[] = [];
   for (let i = 0; i < 14 && !isGoal(node); i++) {
-    const c = masterMove(node, isGoal, searchRules());
+    const c = masterMove(node, isGoal, searchRules(), searchable);
     if (!c) break;
     const next = applyMove(node, c);
     steps.push(`<li>${tex("= " + toLatex(next))}<span class="r">${esc(c.rule.name)}</span></li>`);
     node = next;
   }
-  return steps.length ? `<div class="way"><span class="sc">The school's way.</span> ${esc(STATUS)}.<ol>${steps.join("")}</ol></div>` : "";
+  return steps.length ? `<div class="way"><span class="sc">The school's way.</span> ${esc(status(searchable))}.<ol>${steps.join("")}</ol></div>` : "";
 }
 
 /** The school's chosen move, made: the same rule on the same part of the same line. */
@@ -233,7 +262,7 @@ function keep(_src: string): void {
 function ask(): void {
   const ls = lines();
   const prev = ls[ls.length - 1].node;
-  const c = masterMove(prev, isGoal, searchRules());
+  const c = masterMove(prev, isGoal, searchRules(), searchable);
   const src = document.querySelector<HTMLInputElement>("#src")?.value ?? "";
   if (!c) {
     remark = { who: "The school asks.", text: "What is the next step?" };

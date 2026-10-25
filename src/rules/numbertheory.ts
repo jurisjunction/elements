@@ -212,25 +212,27 @@ const euclid: TacticPlugin = {
   section: "Greatest common divisors",
   category: "axiom",
   direction: "forward",
-  description: "A number dividing both a and b also divides what is left when a is divided by b; so the larger may be replaced by that remainder.",
-  ruleLatex: "\\gcd(84, 60) = \\gcd(60, 24) \\quad (84 = 1 \\cdot 60 + 24)",
+  description: "Divide the greater of the two numbers by the less, and keep the divisor and the remainder: whatever divides both numbers divides the remainder too (Euler, Elements, §452–458).",
+  ruleLatex: "\\gcd(576, 252) = \\gcd(252, 72) \\quad (576 = 2 \\cdot 252 + 72)",
   canApply: (node) => {
     const a = twoArgs(node, "gcd");
     if (!a) return false;
     const [x, y] = a.map(intOf);
-    return x !== null && y !== null && y > 0 && x >= y;
+    return x !== null && y !== null && x > 0 && y > 0;
   },
   explainMismatch: (node) => {
     const a = twoArgs(node, "gcd");
     if (!a) return "Euclid's step is for the greatest common divisor of two numbers.";
     const [x, y] = a.map(intOf);
     if (x === null || y === null) return "Euclid's step needs the two numbers written out as numbers.";
-    if (y === 0) return "Nothing is left to divide by: the other rule, for $0$, finishes it.";
-    return `Put the larger number first: $\\gcd(${y}, ${x})$.`;
+    return "Nothing is left to divide by: the rule for $0$ finishes it.";
   },
+  // As Euler lays it out (§452, §460): whichever comes first, the greater is divided by the
+  // less, and the line keeps the divisor and the remainder.
   apply: (node) => {
     const [x, y] = twoArgs(node, "gcd")!.map((v) => intOf(v)!);
-    return fnNode("gcd", [num(y), num(x % y)]);
+    const [big, small] = x >= y ? [x, y] : [y, x];
+    return fnNode("gcd", [num(small), num(big % small)]);
   },
 };
 
