@@ -1,0 +1,22 @@
+{
+  "name": "elements",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "katex": "^0.18.7",
+    "mathjs": "^15.2.0"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.8",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}
