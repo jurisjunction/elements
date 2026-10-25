@@ -100,3 +100,19 @@ footer.owned th { font-family: var(--fellsc); font-weight: 400; color: var(--fad
 footer.owned .own { color: var(--ok); }
 footer.owned .settings { margin-top: 1rem; display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; color: var(--faded); }
 .katex { font-size: 1.08em; }
+
+/* Euler's words and his working, as printed. */
+.words { margin: 0 0 1rem; }
+details.words summary { cursor: pointer; color: var(--faded); font-size: 0.95rem; }
+.said-by { margin: 0.6rem 0 0.1rem; font-size: 0.92rem; }
+blockquote.euler { margin: 0.2rem 0 0.6rem 1.2rem; padding: 0; font-style: italic; }
+blockquote.euler p { margin: 0; }
+blockquote.euler cite { display: block; font-style: normal; font-family: var(--fellsc); letter-spacing: 0.04em; font-size: 0.8rem; color: var(--faded); margin-top: 0.15rem; }
+.problem-head .from { font-family: var(--fell); font-style: italic; letter-spacing: 0; color: var(--faded); font-size: 0.95rem; }
+.his { margin: 0.4rem 0 0.8rem; }
+.division { font-family: var(--serif); font-variant-numeric: lining-nums tabular-nums; white-space: pre; line-height: 1.35;
+  font-size: 1.05rem; margin: 0.3rem 0 0.6rem 1.2rem; overflow-x: auto; }
+.division div { height: 1.35em; }
+.division i { display: inline-block; width: 1ch; text-align: center; font-style: normal; }
+.division .ruled { border-bottom: 1px solid var(--ink); }
+nav button.euler { font-style: italic; }

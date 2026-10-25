@@ -76,7 +76,9 @@ export function verdict(v: Verdict, owned: (rule: string) => boolean): { stands:
     case "two":
       return {
         stands: false,
-        say: `That is two steps in one line: ${lower(v.rules[0].name)}, then ${lower(v.rules[1].name)}. In this school a line holds one step. Write the first one.`,
+        say: v.rules[0].id === v.rules[1].id
+          ? `That is two steps in one line: ${lower(v.rules[0].name)}, and then the same again on what it gave. In this school a line holds one step. Write the first one.`
+          : `That is two steps in one line: ${lower(v.rules[0].name)}, then ${lower(v.rules[1].name)}. In this school a line holds one step. Write the first one.`,
       };
     case "same":
       return { stands: false, say: "That is the line above, written again." };
@@ -89,7 +91,9 @@ export function verdict(v: Verdict, owned: (rule: string) => boolean): { stands:
   }
 }
 
-const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+/** A rule's name in the middle of a sentence: a proper name (Euclid) or a capital abbreviation
+ * (LCM, GCD) keeps its capitals. */
+const lower = (s: string) => (/^(Euclid|[A-Z]{2})/.test(s) ? s : s.charAt(0).toLowerCase() + s.slice(1));
 
 export const FOUND = "Q.E.I.";
 export const FOUND_GLOSS = "Quod erat inveniendum: which was to be found.";

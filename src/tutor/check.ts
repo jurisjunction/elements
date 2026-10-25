@@ -68,6 +68,12 @@ export function intended(prev: MathNode, node: MathNode, lhs: MathNode | null): 
   return at ? replaceAt(prev, at, node) : "elsewhere";
 }
 
+/** Two places neither of which is inside the other. */
+const apart = (p: NodePath, q: NodePath): boolean => {
+  for (let i = 0; i < Math.min(p.length, q.length); i++) if (p[i] !== q[i]) return true;
+  return false;
+};
+
 export function judge(prev: MathNode, next: MathNode, tactics: TacticPlugin[]): Verdict {
   const key = structKey(next);
   if (key === structKey(prev)) return { kind: "same" };
@@ -75,14 +81,18 @@ export function judge(prev: MathNode, next: MathNode, tactics: TacticPlugin[]): 
   const first = legalMoves(prev, tactics);
   const one = first.find((m) => structKey(m.result) === key);
   if (one) return { kind: "one", move: one.move, rule: byId.get(one.move.tacticId)! };
+  // One rule at two separate places stands as one line. Anything else that takes two moves, the
+  // same rule done again on its own result among them, is two steps.
+  let two: Verdict | null = null;
   for (const m of first) {
-    const two = legalMoves(m.result, tactics).find((x) => structKey(x.result) === key);
-    if (two) {
-      const [r1, r2] = [byId.get(m.move.tacticId)!, byId.get(two.move.tacticId)!];
-      if (r1.id === r2.id) return { kind: "twice", moves: [m.move, two.move], rule: r1 };
-      return { kind: "two", moves: [m.move, two.move], rules: [r1, r2] };
+    for (const x of legalMoves(m.result, tactics)) {
+      if (structKey(x.result) !== key) continue;
+      const [r1, r2] = [byId.get(m.move.tacticId)!, byId.get(x.move.tacticId)!];
+      if (r1.id === r2.id && apart(m.move.path, x.move.path)) return { kind: "twice", moves: [m.move, x.move], rule: r1 };
+      two ??= { kind: "two", moves: [m.move, x.move], rules: [r1, r2] };
     }
   }
+  if (two) return two;
   const a = valueOf(prev);
   const b = valueOf(next);
   return a !== null && b !== null && Math.abs(a - b) < 1e-9 ? { kind: "true" } : { kind: "false" };

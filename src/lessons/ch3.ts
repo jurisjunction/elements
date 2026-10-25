@@ -1,6 +1,9 @@
+import { PURPOSE, RULE, WORKED, type Quote } from "../euler/gcd";
+
 /**
  * The lessons, in the order of the AoPS Pre-Algebra course his class follows (Chapter 3, Number
- * Theory). The problems are this copybook's own; only the order of topics is the course's.
+ * Theory). Only the order of topics is the course's. The problems are this copybook's own, or
+ * Euler's: his worked examples are public domain, and each carries its section.
  */
 
 export interface Problem {
@@ -11,6 +14,8 @@ export interface Problem {
   /** The first line, in the engine's syntax. */
   start: string;
   goal: number;
+  /** Euler's own example: where it is, and what he said it came to. */
+  euler?: { cite: string; said: Quote };
 }
 
 export interface Lesson {
@@ -21,6 +26,9 @@ export interface Lesson {
   /** The rules this lesson's lines may use. */
   rules: string[];
   problems: Problem[];
+  /** What the lesson is for, and its rule, in Euler's words. */
+  purpose?: Quote;
+  rule?: Quote;
 }
 
 const ARITH = ["mult_lit", "pow_lit", "div_lit"];
@@ -52,10 +60,14 @@ export const LESSONS: Lesson[] = [
   {
     id: "euclid",
     numeral: "III",
-    title: "Of Euclid's way, for larger numbers",
-    aops: "AoPS Pre-Algebra, Ch. 3 Number Theory: greatest common divisors",
+    title: "Of the greatest common divisor of two given numbers, after Euler",
+    aops: "AoPS Pre-Algebra, Ch. 3 Number Theory: greatest common divisors · Euler, Elements, Part I, Sect. III, Ch. VII",
     rules: [...PRIMES, "gcd_powers", "euclid", "gcd_zero", "gcd_swap", ...ARITH],
-    problems: [p("gcd", 84, 60, 12), p("gcd", 91, 65, 13), p("gcd", 252, 198, 18), p("gcd", 1071, 462, 21)],
+    purpose: PURPOSE,
+    rule: RULE,
+    // His four worked examples first (ids are new; the older problems keep theirs).
+    problems: [...WORKED.map((w) => ({ ...p("gcd", w.a, w.b, w.answer), euler: { cite: w.cite, said: w.said } })),
+               p("gcd", 84, 60, 12), p("gcd", 91, 65, 13), p("gcd", 252, 198, 18), p("gcd", 1071, 462, 21)],
   },
   {
     id: "both",
